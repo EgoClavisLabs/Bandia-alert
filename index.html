@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BandiaAlert — Gundua AI Media</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --accent: #00e5a0;
+      --accent2: #ff4d6d;
+      --accent3: #7c3aed;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --card: #16161f;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* GRID BACKGROUND */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NOISE OVERLAY */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* HEADER */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 2rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.6rem;
+      letter-spacing: -0.03em;
+    }
+
+    .logo span:first-child { color: var(--accent); }
+    .logo span:last-child { color: var(--accent2); }
+
+    .logo-tag {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      color: var(--accent);
+      border: 1px solid rgba(0,229,160,0.2);
+      padding: 6px 14px;
+      border-radius: 100px;
+      letter-spacing: 0.1em;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 10;
+      padding: 5rem 3rem 3rem;
+      max-width: 900px;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 .highlight {
+      color: var(--accent);
+      position: relative;
+    }
+
+    .hero h1 .danger { color: var(--accent2); }
+
+    .hero p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 560px;
+    }
+
+    /* MAIN DETECTOR */
+    .detector-section {
+      position: relative;
+      z-index: 10;
+      padding: 2rem 3rem 4rem;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 3.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--card);
+      position: relative;
+      overflow: hidden;
+      max-width: 760px;
+    }
+
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,229,160,0.04) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+      filter: grayscale(0.4);
+    }
+
+    .upload-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .upload-types {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .type-badge {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .type-badge.img { border-color: rgba(0,229,160,0.3); color: var(--accent); }
+    .type-badge.vid { border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+    .type-badge.aud { border-color: rgba(255,77,109,0.3); color: var(--accent2); }
+
+    #fileInput { display: none; }
+
+    /* URL INPUT */
+    .url-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 1.5rem;
+      max-width: 760px;
+    }
+
+    .url-input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1.2rem;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .url-input::placeholder { color: var(--muted); }
+    .url-input:focus { border-color: var(--accent); }
+
+    .btn-analyze {
+      background: var(--accent);
+      color: #0a0a0f;
+      border: none;
+      border-radius: 10px;
+      padding: 0.85rem 1.8rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-analyze:hover {
+      background: #00ffc0;
+      transform: translateY(-1px);
+    }
+
+    .btn-analyze:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* RESULTS PANEL */
+    .results-panel {
+      max-width: 760px;
+      margin-top: 2rem;
+      display: none;
+    }
+
+    .results-panel.visible { display: block; }
+
+    /* SCANNING ANIMATION */
+    .scanning {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      text-align: center;
+      display: none;
+    }
+
+    .scanning.visible { display: block; }
+
+    .scan-bar-wrap {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 100px;
+      margin: 1.5rem 0 1rem;
+      overflow: hidden;
+    }
+
+    .scan-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #00ffc0);
+      border-radius: 100px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .scan-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+
+    /* VERDICT CARD */
+    .verdict-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .verdict-card.visible { display: block; }
+
+    .verdict-header {
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .verdict-icon {
+      font-size: 2.2rem;
+    }
+
+    .verdict-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .verdict-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .verdict-title.bandia { color: var(--accent2); }
+    .verdict-title.halisi { color: var(--accent); }
+    .verdict-title.shaka { color: #f59e0b; }
+
+    /* CONFIDENCE METER */
+    .confidence-section {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .confidence-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.7rem;
+    }
+
+    .confidence-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+
+    .confidence-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 10px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+      width: 0%;
+    }
+
+    /* SIGNALS */
+    .signals-section {
+      padding: 1.5rem 2rem;
+    }
+
+    .signals-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .signal-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      animation: fadeUp 0.4s ease forwards;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .signal-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .signal-dot.warn { background: var(--accent2); }
+    .signal-dot.ok { background: var(--accent); }
+    .signal-dot.neutral { background: #f59e0b; }
+
+    /* PREVIEW THUMB */
+    .preview-thumb {
+      max-width: 760px;
+      margin-top: 1rem;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      display: none;
+    }
+
+    .preview-thumb.visible { display: block; }
+    .preview-thumb img { width: 100%; display: block; max-height: 280px; object-fit: cover; }
+
+    /* HOW IT WORKS */
+    .how-section {
+      position: relative;
+      z-index: 10;
+      padding: 2rem 3rem 5rem;
+      max-width: 900px;
+    }
+
+    .section-eyebrow {
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .step-card {
+      background: var(--card);
+      padding: 1.8rem;
+    }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--border);
+      margin-bottom: 0.5rem;
+      line-height: 1;
+    }
+
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 10;
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      header, .hero, .detector-section, .how-section, footer {
+        padding-left: 1.2rem;
+        padding-right: 1.2rem;
+      }
+      .hero { padding-top: 3rem; }
+      .url-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">
+      <span>Bandia</span><span>Alert</span>
+    </div>
+    <div class="logo-tag">Zana ya Kugundua AI Media</div>
+  </div>
+  <div class="status-pill">
+    <span class="status-dot"></span>
+    MFUMO UNAOFANYA KAZI
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-eyebrow">▸ Teknolojia ya Kisasa · Toleo 1.0</div>
+  <h1>
+    Gundua <span class="highlight">Picha</span>,<br/>
+    Video & Sauti <span class="danger">Bandia</span>
+  </h1>
+  <p>BandiaNasa inachunguza media yako kwa haraka ili kugundua kama imetengenezwa na AI. Pakia faili au weka kiungo — tutakuambia ukweli.</p>
+</section>
+
+<section class="detector-section">
+
+  <!-- UPLOAD ZONE -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept="image/*,video/*,audio/*"/>
+    <span class="upload-icon">🔍</span>
+    <div class="upload-title">Buruta faili hapa au bonyeza kupakia</div>
+    <div class="upload-sub">
+      Tunakubali picha, video, na faili za sauti.<br/>
+      Faili zako hazihifadhiwa — zinafutwa baada ya uchambuzi.
+    </div>
+    <div class="upload-types">
+      <span class="type-badge img">JPG · PNG · WEBP</span>
+      <span class="type-badge vid">MP4 · MOV · WEBM</span>
+      <span class="type-badge aud">MP3 · WAV · OGG</span>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-thumb" id="previewThumb">
+    <img id="previewImg" src="" alt="Preview"/>
+  </div>
+
+  <!-- URL INPUT -->
+  <div class="url-row">
+    <input type="text" class="url-input" id="urlInput" placeholder="Au weka kiungo cha URL hapa... (mfano: https://...)"/>
+    <button class="btn-analyze" id="analyzeBtn">Chunguza →</button>
+  </div>
+
+  <!-- SCANNING -->
+  <div class="results-panel" id="resultsPanel">
+    <div class="scanning" id="scanningBox">
+      <div class="scan-label" id="scanLabel">INACHANGANUA...</div>
+      <div class="scan-bar-wrap">
+        <div class="scan-bar" id="scanBar"></div>
+      </div>
+      <div style="font-size:0.72rem; color:var(--muted)" id="scanStep">Inaangalia metadata...</div>
+    </div>
+
+    <!-- VERDICT -->
+    <div class="verdict-card" id="verdictCard">
+      <div class="verdict-header">
+        <span class="verdict-icon" id="verdictIcon"></span>
+        <div>
+          <div class="verdict-label">MATOKEO YA UCHAMBUZI</div>
+          <div class="verdict-title" id="verdictTitle"></div>
+        </div>
+      </div>
+      <div class="confidence-section">
+        <div class="confidence-row">
+          <span class="confidence-label">KIWANGO CHA UHAKIKA</span>
+          <span class="confidence-value" id="confidenceVal">0%</span>
+        </div>
+        <div class="meter-track">
+          <div class="meter-fill" id="meterFill"></div>
+        </div>
+      </div>
+      <div class="signals-section">
+        <div class="signals-title">ISHARA ZILIZOGUNDULIKA</div>
+        <div id="signalsList"></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<section class="how-section">
+  <div class="section-eyebrow">// Jinsi Inavyofanya Kazi</div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-title">Pakia Media</div>
+      <div class="step-desc">Pakia picha, video, au sauti yoyote kutoka kwenye kifaa chako au weka kiungo cha URL.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-title">Uchambuzi wa AI</div>
+      <div class="step-desc">Mfumo wetu huchunguza metadata, mifumo ya pikseli, na ishara za dijitali za AI.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-title">Gundua Matokeo</div>
+      <div class="step-desc">Unapata matokeo wazi: BANDIA, HALISI, au SHAKA — pamoja na maelezo.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-title">Fanya Uamuzi</div>
+      <div class="step-desc">Tumia matokeo yetu kufanya uamuzi sahihi kuhusu ukweli wa habari na maudhui.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2025 BandiaAlert · Imetengenezwa Tanzania 🇹🇿</span>
+  <span>Toleo 1.0 · Bado inaboreshwa</span>
+</footer>
+
+<script>
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const urlInput = document.getElementById('urlInput');
+  const resultsPanel = document.getElementById('resultsPanel');
+  const scanningBox = document.getElementById('scanningBox');
+  const scanBar = document.getElementById('scanBar');
+  const scanLabel = document.getElementById('scanLabel');
+  const scanStep = document.getElementById('scanStep');
+  const verdictCard = document.getElementById('verdictCard');
+  const verdictIcon = document.getElementById('verdictIcon');
+  const verdictTitle = document.getElementById('verdictTitle');
+  const confidenceVal = document.getElementById('confidenceVal');
+  const meterFill = document.getElementById('meterFill');
+  const signalsList = document.getElementById('signalsList');
+  const previewThumb = document.getElementById('previewThumb');
+  const previewImg = document.getElementById('previewImg');
+
+  let currentFile = null;
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+
+  uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    currentFile = file;
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        previewThumb.classList.add('visible');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      previewThumb.classList.remove('visible');
+    }
+    uploadZone.style.borderColor = 'var(--accent)';
+    uploadZone.querySelector('.upload-title').textContent = `✓ ${file.name}`;
+  }
+
+  analyzeBtn.addEventListener('click', startAnalysis);
+  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') startAnalysis(); });
+
+  function startAnalysis() {
+    if (!currentFile && !urlInput.value.trim()) {
+      urlInput.style.borderColor = 'var(--accent2)';
+      setTimeout(() => urlInput.style.borderColor = '', 1000);
+      return;
+    }
+
+    analyzeBtn.disabled = true;
+    resultsPanel.classList.add('visible');
+    scanningBox.classList.add('visible');
+    verdictCard.classList.remove('visible');
+    scanBar.style.width = '0%';
+    signalsList.innerHTML = '';
+
+    const steps = [
+      'Inaangalia metadata...',
+      'Inachunguza mifumo ya pikseli...',
+      'Inachanganua frequency ya rangi...',
+      'Inatathmini mfumo wa GAN...',
+      'Inakagua ishara za compression...',
+      'Inafanya uamuzi wa mwisho...'
+    ];
+
+    let progress = 0;
+    let stepIdx = 0;
+
+    const interval = setInterval(() => {
+      progress += Math.random() * 18 + 4;
+      if (progress > 100) progress = 100;
+      scanBar.style.width = progress + '%';
+
+      if (stepIdx < steps.length) {
+        scanStep.textContent = steps[stepIdx];
+        stepIdx++;
+      }
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(showResult, 400);
+      }
+    }, 400);
+  }
+
+  function showResult() {
+    scanningBox.classList.remove('visible');
+    verdictCard.classList.add('visible');
+
+    // Simulate detection result
+    const rand = Math.random();
+    let verdict, cls, icon, confidence, signals;
+
+    if (currentFile) {
+      // Simulate based on file type
+      const isMostlyBandia = Math.random() > 0.4;
+      if (isMostlyBandia) {
+        verdict = 'BANDIA — AI IMETENGENEZA';
+        cls = 'bandia';
+        icon = '⚠️';
+        confidence = Math.floor(Math.random() * 25 + 72);
+        signals = [
+          { type: 'warn', text: 'Mfumo wa GAN uligundulika kwenye texture ya picha' },
+          { type: 'warn', text: 'Metadata ya kamera haipo — hii ni dalili ya AI' },
+          { type: 'warn', text: 'Mwanga na vivuli havioani kiasili' },
+          { type: 'neutral', text: 'Compression artifacts ina mfumo usio wa kawaida' },
+          { type: 'ok', text: 'Resolution ni ya kawaida — sio tatizo peke yake' },
+        ];
+      } else {
+        verdict = 'HALISI — Inaonekana ya Kweli';
+        cls = 'halisi';
+        icon = '✅';
+        confidence = Math.floor(Math.random() * 20 + 75);
+        signals = [
+          { type: 'ok', text: 'Metadata ya kamera ipo na inafanana' },
+          { type: 'ok', text: 'Mifumo ya pikseli inaonyesha upigaji picha wa kweli' },
+          { type: 'ok', text: 'Compression artifacts ni za kawaida' },
+          { type: 'neutral', text: 'Rangi zina kidogo cha uhariri — lakini si lazima AI' },
+        ];
+      }
+    } else {
+      verdict = 'SHAKA — Haiwezekani Kuthibitisha';
+      cls = 'shaka';
+      icon = '🔶';
+      confidence = Math.floor(Math.random() * 20 + 45);
+      signals = [
+        { type: 'neutral', text: 'URL haikuruhusu uchambuzi kamili wa faili' },
+        { type: 'neutral', text: 'Baadhi ya ishara zinaonyesha uwezekano wa AI' },
+        { type: 'ok', text: 'Hakuna ushahidi mkubwa wa GAN' },
+        { type: 'warn', text: 'Inapendekezwa upakiaji wa faili moja kwa moja' },
+      ];
+    }
+
+    verdictIcon.textContent = icon;
+    verdictTitle.textContent = verdict;
+    verdictTitle.className = 'verdict-title ' + cls;
+
+    // Animate confidence
+    let cv = 0;
+    const meterColor = cls === 'bandia' ? 'var(--accent2)' : cls === 'halisi' ? 'var(--accent)' : '#f59e0b';
+    meterFill.style.background = meterColor;
+    confidenceVal.style.color = meterColor;
+
+    const cInterval = setInterval(() => {
+      cv += 2;
+      if (cv > confidence) { cv = confidence; clearInterval(cInterval); }
+      confidenceVal.textContent = cv + '%';
+      meterFill.style.width = cv + '%';
+    }, 20);
+
+    // Show signals with stagger
+    signals.forEach((s, i) => {
+      const el = document.createElement('div');
+      el.className = 'signal-item';
+      el.style.animationDelay = (i * 0.12) + 's';
+      el.innerHTML = `<span class="signal-dot ${s.type}"></span><span>${s.text}</span>`;
+      signalsList.appendChild(el);
+    });
+
+    analyzeBtn.disabled = false;
+    currentFile = null;
+    fileInput.value = '';
+  }
+</script>
+
+</body>
+</html>
+

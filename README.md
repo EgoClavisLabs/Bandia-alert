@@ -1,5 +1,6 @@
 # Bandia-alert
-a simple tool for  detecting AI  made  media  
+a simple tool for  detecting AI-generated   media  
+
 
 
 
